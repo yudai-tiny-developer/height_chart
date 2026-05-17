@@ -3,6 +3,7 @@ const csvInput = document.getElementById('csv-input');
 const csvDropZone = document.getElementById('csv-drop-zone');
 const imageDropZone = document.getElementById('image-drop-zone');
 const loadedImagesList = document.getElementById('loaded-images-list');
+const btnUseSample = document.getElementById('btn-use-sample');
 const btnGenerate = document.getElementById('btn-generate');
 const btnDownload = document.getElementById('btn-download');
 const canvas = document.getElementById('result-canvas');
@@ -31,9 +32,13 @@ const translations = {
         'unit-label': 'Display Unit',
         'draw-bg': 'Show Background Height Grid',
         'draw-height': 'Show Height Labels',
+        'btn-use-sample': 'Use Sample Data',
         'btn-generate': 'Generate Chart',
         'btn-download': 'Download PNG',
         'loading-overlay': 'Loading Images & Generating...',
+        'confirm-overwrite-sample': 'CSV data or images are already loaded. Overwrite them with sample data?',
+        'sample-loaded': 'Sample data loaded.',
+        'sample-load-failed': 'Failed to load sample data: {0}',
         'alert-valid-csv': 'Please drop a valid .csv file.',
         'alert-no-img': 'No images loaded',
         'alert-no-csv': 'Please provide CSV data.',
@@ -60,9 +65,13 @@ const translations = {
         'unit-label': '表示単位',
         'draw-bg': '背景の身長グリッドを描画',
         'draw-height': '頭上の身長テキストを描画',
+        'btn-use-sample': 'サンプルデータを使用する',
         'btn-generate': 'チャートを生成',
         'btn-download': 'PNGをダウンロード',
         'loading-overlay': '画像を読み込み、生成中...',
+        'confirm-overwrite-sample': '既存のCSVデータまたは画像ファイルをサンプルデータで上書きします。よろしいですか？',
+        'sample-loaded': 'サンプルデータを読み込みました。',
+        'sample-load-failed': 'サンプルデータの読み込みに失敗しました: {0}',
         'alert-valid-csv': '有効な.csvファイルをドロップしてください。',
         'alert-no-img': '読み込まれた画像はありません',
         'alert-no-csv': 'CSVデータを入力してください。',
@@ -126,8 +135,14 @@ function showToast(msg, type = 'error') {
 }
 
 // State
-let localImages = {}; // key: filename, value: object URL
+let localImages = {}; // key: filename, value: image URL
 let currentZoom = 1;
+const sampleCsvPath = 'samples/sample_data.csv';
+const fallbackSampleCsv = [
+    'sample1.png, 175, 97, 867, 193, 341',
+    'sample2.png, 5\'3", 97, 902, 199, 318',
+    'sample3.png, 167.5, 97, 885, 139, 270'
+].join('\n');
 
 function applyZoom() {
     if (!canvas.width) return;
@@ -140,6 +155,7 @@ function init() {
     setLanguage(currentLang);
     setupDragAndDrop();
     setupCanvasDrag();
+    btnUseSample.addEventListener('click', useSampleData);
     btnGenerate.addEventListener('click', generateChart);
     btnDownload.addEventListener('click', downloadCanvas);
 }
@@ -292,6 +308,66 @@ function updateLoadedImagesUI() {
         li.title = key;
         loadedImagesList.appendChild(li);
     });
+}
+
+function revokeImageUrls(images) {
+    Object.values(images).forEach(url => {
+        if (url.startsWith('blob:')) {
+            URL.revokeObjectURL(url);
+        }
+    });
+}
+
+async function fetchSampleResource(path) {
+    const response = await fetch(path);
+    if (!response.ok) {
+        throw new Error(`${path} (${response.status})`);
+    }
+    return response;
+}
+
+async function loadSampleCsvText() {
+    try {
+        const csvResponse = await fetchSampleResource(sampleCsvPath);
+        return await csvResponse.text();
+    } catch (error) {
+        if (window.location.protocol === 'file:') {
+            return fallbackSampleCsv;
+        }
+        throw error;
+    }
+}
+
+async function useSampleData() {
+    const hasCsvData = csvInput.value.trim().length > 0;
+    const hasImageData = Object.keys(localImages).length > 0;
+
+    if ((hasCsvData || hasImageData) && !window.confirm(t('confirm-overwrite-sample'))) {
+        return;
+    }
+
+    btnUseSample.disabled = true;
+
+    try {
+        const csvText = await loadSampleCsvText();
+        const sampleRows = parseCSV(csvText);
+        const filenames = [...new Set(sampleRows.map(row => row.Filename))];
+        const sampleImages = {};
+        filenames.forEach(filename => {
+            sampleImages[filename] = `samples/${encodeURIComponent(filename)}`;
+        });
+
+        const previousImages = localImages;
+        csvInput.value = csvText;
+        localImages = sampleImages;
+        revokeImageUrls(previousImages);
+        updateLoadedImagesUI();
+        showToast(t('sample-loaded'), 'info');
+    } catch (error) {
+        showToast(t('sample-load-failed', error.message), 'error');
+    } finally {
+        btnUseSample.disabled = false;
+    }
 }
 
 // CSV Parser
