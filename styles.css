@@ -406,6 +406,25 @@ input:checked+.slider:before {
   transform: none;
 }
 
+/* Footer */
+.sidebar-footer {
+  padding-top: 4px;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.sidebar-footer a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.sidebar-footer a:hover,
+.sidebar-footer a:focus-visible {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
 /* Main Canvas Area */
 .canvas-container {
   flex: 1;
@@ -548,4 +567,52 @@ canvas {
     opacity: 0;
     transform: scale(0.9);
   }
+}
+
+/* Privacy Policy Page */
+.policy-page {
+  min-height: 100vh;
+  height: auto;
+  overflow: auto;
+}
+
+.policy-container {
+  width: min(760px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 48px 0;
+  line-height: 1.7;
+}
+
+.policy-container h1 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.policy-updated {
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+}
+
+.policy-container section {
+  margin-top: 28px;
+}
+
+.policy-container h2 {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+
+.policy-container p,
+.policy-container li {
+  color: var(--text-secondary);
+}
+
+.policy-container ul {
+  padding-left: 20px;
+}
+
+.policy-back-link {
+  display: inline-block;
+  margin-top: 32px;
+  color: var(--text-primary);
 }
